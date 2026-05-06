@@ -80,35 +80,24 @@ export default function Apply() {
         throw new Error(`${processedData.error}: ${processedData.details || ''}`);
       }
 
-      // 4. Save to Database
-      const { data: candidate, error: candError } = await supabase
-        .from("candidates")
-        .insert({
-          name: formData.name,
-          email: formData.email,
-          cv_url: publicUrl,
-        })
-        .select()
-        .single();
+      // 4. Save to Database via RPC to bypass RLS SELECT errors
+      const { data: result, error: rpcError } = await supabase.rpc('submit_application', {
+        p_name: formData.name,
+        p_email: formData.email,
+        p_cv_url: publicUrl,
+        p_job_id: jobId as string,
+        p_parsed_data: {
+          skills: processedData.skills,
+          experience_years: processedData.experience_years,
+          education: processedData.education,
+          projects: processedData.projects,
+        },
+        p_match_score: processedData.score ?? null,
+        p_ai_evaluation: processedData.insights ?? null,
+      });
 
-      if (candError) throw candError;
-
-      const { error: appError } = await supabase
-        .from("applications")
-        .insert({
-          candidate_id: candidate.id,
-          job_id: jobId,
-          parsed_data: {
-            skills: processedData.skills,
-            experience_years: processedData.experience_years,
-            education: processedData.education,
-            projects: processedData.projects,
-          },
-          match_score: processedData.score,
-          ai_evaluation: processedData.insights,
-        });
-
-      if (appError) throw appError;
+      if (rpcError) throw rpcError;
+      if (!(result as any)?.success) throw new Error("Failed to submit application");
       
       return true;
     },

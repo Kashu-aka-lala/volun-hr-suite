@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      applications: {
+        Row: {
+          ai_evaluation: Json | null
+          candidate_id: string
+          created_at: string
+          id: string
+          job_id: string
+          match_score: number | null
+          parsed_data: Json | null
+          status: string
+        }
+        Insert: {
+          ai_evaluation?: Json | null
+          candidate_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          match_score?: number | null
+          parsed_data?: Json | null
+          status?: string
+        }
+        Update: {
+          ai_evaluation?: Json | null
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          match_score?: number | null
+          parsed_data?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           check_in: string | null
@@ -57,6 +105,71 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidates: {
+        Row: {
+          created_at: string
+          cv_url: string
+          email: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          cv_url: string
+          email: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          cv_url?: string
+          email?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      jobs: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          description: string
+          experience_required: number
+          id: string
+          required_skills: string[]
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          description: string
+          experience_required?: number
+          id?: string
+          required_skills?: string[]
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          description?: string
+          experience_required?: number
+          id?: string
+          required_skills?: string[]
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
@@ -387,6 +500,29 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      submit_application: {
+        Args: {
+          p_name: string
+          p_email: string
+          p_cv_url: string
+          p_job_id: string
+          p_parsed_data: Json
+          p_match_score: number
+          p_ai_evaluation: Json
+        }
+        Returns: Json
+      }
+      delete_job: {
+        Args: { p_job_id: string }
+        Returns: Json
+      }
+      update_application_status: {
+        Args: {
+          p_application_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       account_status: "pending" | "approved" | "rejected"
