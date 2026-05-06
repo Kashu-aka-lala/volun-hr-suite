@@ -49,33 +49,31 @@ export default function Apply() {
         .from("cv_storage")
         .getPublicUrl(filePath);
 
-      // 2. Trigger AI Parsing and Matching (via our FastAPI hiring server)
-      const parseResponse = await fetch("http://localhost:8001/parse-cv", {
-        method: "POST",
-        body: (() => {
-          const fd = new FormData();
-          fd.append("file", file!);
-          return fd;
-        })(),
+      // 2. Convert file to Base64 for the Edge Function
+      const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result?.toString().split(',')[1] || "");
+        reader.onerror = reject;
       });
-      const parsedData = await parseResponse.json();
 
-      const matchResponse = await fetch("http://localhost:8001/match", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          candidate_data: parsedData,
-          job_data: {
+      const fileBase64 = await toBase64(file!);
+
+      // 3. Trigger AI Parsing and Matching via Supabase Edge Function
+      const { data: processedData, error: edgeError } = await supabase.functions.invoke('process-cv', {
+        body: {
+          fileBase64,
+          jobData: {
             title: job!.title,
             required_skills: job!.required_skills,
             experience_required: job!.experience_required,
           },
-        }),
+        },
       });
-      const matchData = await matchResponse.json();
 
-      // 3. Save to Database
-      // Create Candidate
+      if (edgeError) throw new Error("AI Processing failed: " + edgeError.message);
+
+      // 4. Save to Database
       const { data: candidate, error: candError } = await supabase
         .from("candidates")
         .insert({
@@ -88,15 +86,19 @@ export default function Apply() {
 
       if (candError) throw candError;
 
-      // Create Application
       const { error: appError } = await supabase
         .from("applications")
         .insert({
           candidate_id: candidate.id,
           job_id: jobId,
-          parsed_data: parsedData,
-          match_score: matchData.score,
-          ai_evaluation: matchData.insights,
+          parsed_data: {
+            skills: processedData.skills,
+            experience_years: processedData.experience_years,
+            education: processedData.education,
+            projects: processedData.projects,
+          },
+          match_score: processedData.score,
+          ai_evaluation: processedData.insights,
         });
 
       if (appError) throw appError;
