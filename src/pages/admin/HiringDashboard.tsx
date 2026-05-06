@@ -72,21 +72,30 @@ export default function HiringDashboard() {
 
   const statusMutation = useMutation({
     mutationFn: async ({ appId, status }: { appId: string; status: string }) => {
-      window.alert(`Sending to DB: ID=${appId}, Status=${status}`);
-      const { error } = await supabase
+      window.alert(`Attempting DB Update: ID=${appId} -> Status=${status}`);
+      const { data, error, count } = await supabase
         .from("applications")
         .update({ status })
-        .eq("id", appId);
+        .eq("id", appId)
+        .select(); // select() forces it to return data so we can check count
+      
       if (error) throw error;
+      
+      const rowsAffected = data?.length || 0;
+      window.alert(`Database Response: Rows affected = ${rowsAffected}`);
+      
+      if (rowsAffected === 0) {
+        throw new Error("The database couldn't find this candidate's ID to update.");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
       toast.success("Candidate status updated!");
-      window.alert("SUCCESS: Database updated successfully!");
+      window.alert("SUCCESS: The database confirmed the update!");
     },
     onError: (err: any) => {
       console.error("FULL DATABASE ERROR:", err);
-      window.alert("DATABASE ERROR: " + JSON.stringify(err));
+      window.alert("DATABASE ERROR: " + (err.message || JSON.stringify(err)));
       toast.error(`Database Error: ${err.message || 'Check your permissions'}`);
     }
   });
@@ -285,6 +294,7 @@ export default function HiringDashboard() {
               <TableHead className="w-[250px]">Candidate</TableHead>
               <TableHead>Applied For</TableHead>
               <TableHead className="text-center">Match Score</TableHead>
+              <TableHead className="text-center">Status</TableHead>
               <TableHead>Experience</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
@@ -317,6 +327,11 @@ export default function HiringDashboard() {
                   <TableCell className="text-center">
                     <Badge className={cn("px-2 py-0.5 border font-semibold", getScoreColor(app.match_score))}>
                       {Math.round(app.match_score)}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="secondary" className="capitalize">
+                      {app.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
