@@ -72,7 +72,7 @@ export default function HiringDashboard() {
 
   const statusMutation = useMutation({
     mutationFn: async ({ appId, status }: { appId: string; status: string }) => {
-      console.log(`Updating app ${appId} to ${status}`);
+      window.alert(`Sending to DB: ID=${appId}, Status=${status}`);
       const { error } = await supabase
         .from("applications")
         .update({ status })
@@ -82,9 +82,11 @@ export default function HiringDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
       toast.success("Candidate status updated!");
+      window.alert("SUCCESS: Database updated successfully!");
     },
     onError: (err: any) => {
-      console.error("Status Update Error:", err);
+      console.error("FULL DATABASE ERROR:", err);
+      window.alert("DATABASE ERROR: " + JSON.stringify(err));
       toast.error(`Database Error: ${err.message || 'Check your permissions'}`);
     }
   });
