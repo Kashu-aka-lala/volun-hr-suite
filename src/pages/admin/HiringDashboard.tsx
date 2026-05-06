@@ -80,9 +80,9 @@ export default function HiringDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
-      window.alert("Success! Status updated in database.");
       toast.success("Candidate status updated!");
-      setSelectedApp(null);
+      // Don't clear selectedApp immediately to prevent the "white screen" flash
+      setTimeout(() => setSelectedApp(null), 100);
     },
     onError: (err: any) => {
       console.error("Status Update Error:", err);

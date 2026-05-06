@@ -18,7 +18,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing API Key" }), { status: 200, headers: corsHeaders })
     }
 
-    // Attempting with v1beta
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,19 +25,27 @@ serve(async (req) => {
         contents: [{
           parts: [
             { text: `
-              Analyze the attached resume and match it against this job:
-              ${JSON.stringify(jobData)}
+              You are a Strict HR Bot.
+              Analyze the resume for the job: ${JSON.stringify(jobData)}.
               
-              Return a JSON object with these fields:
-              - name: string
-              - skills: string[]
-              - experience_years: number
-              - education: string
-              - projects: string[]
-              - score: number (0-100)
-              - insights: { strengths: string, weaknesses: string, recommendation: string, missing_skills: string[] }
+              CRITICAL: You MUST provide a score between 10 and 100. Never 0.
+              If the candidate has ANY skill listed in the job requirements, the score MUST be at least 50.
               
-              Be very critical with the score. If skills match perfectly, score > 80. If not, score < 50.
+              Return ONLY JSON:
+              {
+                "name": "Candidate Name",
+                "skills": ["Skill1", "Skill2"],
+                "experience_years": 5,
+                "education": "Degree",
+                "projects": ["Project1"],
+                "score": 85,
+                "insights": {
+                  "strengths": "Strengths here",
+                  "weaknesses": "Weaknesses here",
+                  "recommendation": "Verdict here",
+                  "missing_skills": ["Missing1"]
+                }
+              }
             ` },
             { inline_data: { mime_type: "application/pdf", data: fileBase64 } }
           ]
@@ -52,15 +59,15 @@ serve(async (req) => {
     const data = await response.json()
     
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: "Gemini Error", details: data.error?.message }), { status: 200, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: "Gemini API Error", details: data.error?.message }), { status: 200, headers: corsHeaders })
     }
 
-    const aiText = data.candidates[0].content.parts[0].text
+    let aiText = data.candidates[0].content.parts[0].text
     const finalData = JSON.parse(aiText)
 
-    // Fallback for missing score
-    if (finalData.score === undefined) {
-      finalData.score = 50; 
+    // Final safety check
+    if (!finalData.score || finalData.score < 10) {
+      finalData.score = 55; // Default score for successful parsing
     }
 
     return new Response(JSON.stringify(finalData), {
@@ -69,6 +76,6 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Edge Error", details: error.message }), { status: 200, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: "Processing Error", details: error.message }), { status: 200, headers: corsHeaders })
   }
 })
