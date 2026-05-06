@@ -394,7 +394,7 @@ export default function HiringDashboard() {
                                 className="flex-1 gap-2" 
                                 disabled={statusMutation.isPending}
                                 onClick={() => {
-                                  console.log("Reject clicked for:", selectedApp.id);
+                                  window.alert("REJECT BUTTON CLICKED");
                                   statusMutation.mutate({ appId: selectedApp.id, status: "rejected" });
                                 }}
                               >
@@ -405,7 +405,7 @@ export default function HiringDashboard() {
                                 className="flex-1 gap-2 bg-green-600 hover:bg-green-700" 
                                 disabled={statusMutation.isPending}
                                 onClick={() => {
-                                  console.log("Hire clicked for:", selectedApp.id);
+                                  window.alert("HIRE BUTTON CLICKED");
                                   statusMutation.mutate({ appId: selectedApp.id, status: "hired" });
                                 }}
                               >
