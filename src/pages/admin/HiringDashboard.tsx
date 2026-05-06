@@ -33,6 +33,7 @@ export default function HiringDashboard() {
   const [isJobDialogOpen, setIsJobDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<any>(null);
   const [selectedDept, setSelectedDept] = useState<string>("");
+  const [filterJobId, setFilterJobId] = useState<string>("all");
   const queryClient = useQueryClient();
 
   const { data: applications, isLoading } = useQuery({
@@ -108,11 +109,25 @@ export default function HiringDashboard() {
       setEditingJob(null);
       setSelectedDept("");
     },
+  });
+
+  const deleteJobMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      const { error } = await supabase.from("jobs").delete().eq("id", jobId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
+      toast.success("Job posting deleted");
+    },
     onError: (err: any) => {
-      console.error("Job Mutation Error:", err);
-      toast.error(err.message || "Failed to post job. Check console for details.");
+      toast.error(`Error deleting job: ${err.message}`);
     }
   });
+
+  const filteredApplications = filterJobId === "all" 
+    ? applications 
+    : applications?.filter((app: any) => app.job_id === filterJobId);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-100 text-green-700 border-green-200";
@@ -129,17 +144,18 @@ export default function HiringDashboard() {
 
       <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
         <div className="flex items-center gap-4">
-          <Select onValueChange={(val) => console.log(val)}>
+          <Select value={filterJobId} onValueChange={setFilterJobId}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Filter by Job" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Jobs</SelectItem>
               {jobs?.map((j: any) => (
                 <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <span className="text-sm text-muted-foreground">{applications?.length || 0} total applications</span>
+          <span className="text-sm text-muted-foreground">{filteredApplications?.length || 0} total applications</span>
         </div>
         <Dialog open={isJobDialogOpen} onOpenChange={setIsJobDialogOpen}>
           <DialogTrigger asChild>
@@ -151,6 +167,48 @@ export default function HiringDashboard() {
               Create New Job
             </Button>
           </DialogTrigger>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 ml-2">
+                <Briefcase className="h-4 w-4" />
+                Manage Jobs
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Active Job Postings</DialogTitle>
+                <DialogDescription>View and manage your open positions.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 pt-4 max-h-[400px] overflow-y-auto pr-2">
+                {jobs?.map((job: any) => (
+                  <div key={job.id} className="flex items-center justify-between p-4 border rounded-xl hover:bg-slate-50 transition-colors">
+                    <div>
+                      <h4 className="font-semibold text-slate-900">{job.title}</h4>
+                      <p className="text-xs text-slate-500 uppercase tracking-wider">{job.departments?.name || 'No Department'}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this job? All associated applications will be removed.")) {
+                            deleteJobMutation.mutate(job.id);
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {(!jobs || jobs.length === 0) && (
+                  <div className="text-center py-8 text-slate-500">No jobs posted yet.</div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
           <DialogContent className="max-w-xl">
             <DialogHeader>
               <DialogTitle>{editingJob ? "Edit Job" : "Post New Job"}</DialogTitle>
@@ -236,14 +294,14 @@ export default function HiringDashboard() {
                   <TableCell colSpan={5} className="h-16 animate-pulse bg-slate-50/20" />
                 </TableRow>
               ))
-            ) : applications?.length === 0 ? (
+            ) : filteredApplications?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
                   No applications found.
                 </TableCell>
               </TableRow>
             ) : (
-              applications?.map((app) => (
+              filteredApplications?.map((app) => (
                 <TableRow key={app.id} className="group hover:bg-slate-50/50 transition-colors">
                   <TableCell>
                     <div className="font-medium">{app.candidates?.name}</div>
