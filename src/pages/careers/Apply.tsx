@@ -71,7 +71,14 @@ export default function Apply() {
         },
       });
 
-      if (edgeError) throw new Error("AI Processing failed: " + edgeError.message);
+      if (edgeError) {
+        console.error("Edge Function Error Details:", edgeError);
+        throw new Error(`AI Processing failed: ${edgeError.message || 'Unknown'}`);
+      }
+
+      if (processedData?.error) {
+        throw new Error(`${processedData.error}: ${processedData.details || ''}`);
+      }
 
       // 4. Save to Database
       const { data: candidate, error: candError } = await supabase

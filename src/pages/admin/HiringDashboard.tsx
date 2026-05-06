@@ -71,6 +71,7 @@ export default function HiringDashboard() {
 
   const statusMutation = useMutation({
     mutationFn: async ({ appId, status }: { appId: string; status: string }) => {
+      console.log(`Updating app ${appId} to ${status}`);
       const { error } = await supabase
         .from("applications")
         .update({ status })
@@ -79,9 +80,15 @@ export default function HiringDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
-      toast.success("Application status updated");
+      window.alert("Success! Status updated in database.");
+      toast.success("Candidate status updated!");
       setSelectedApp(null);
     },
+    onError: (err: any) => {
+      console.error("Status Update Error:", err);
+      window.alert("Database Error: " + err.message);
+      toast.error(`Error: ${err.message || 'Could not update status'}`);
+    }
   });
 
   const jobMutation = useMutation({
@@ -329,7 +336,10 @@ export default function HiringDashboard() {
                                 variant="destructive" 
                                 className="flex-1 gap-2" 
                                 disabled={statusMutation.isPending}
-                                onClick={() => statusMutation.mutate({ appId: selectedApp.id, status: "rejected" })}
+                                onClick={() => {
+                                  console.log("Reject clicked for:", selectedApp.id);
+                                  statusMutation.mutate({ appId: selectedApp.id, status: "rejected" });
+                                }}
                               >
                                 <ThumbsDown className="h-4 w-4" />
                                 Reject Candidate
@@ -337,7 +347,10 @@ export default function HiringDashboard() {
                               <Button 
                                 className="flex-1 gap-2 bg-green-600 hover:bg-green-700" 
                                 disabled={statusMutation.isPending}
-                                onClick={() => statusMutation.mutate({ appId: selectedApp.id, status: "hired" })}
+                                onClick={() => {
+                                  console.log("Hire clicked for:", selectedApp.id);
+                                  statusMutation.mutate({ appId: selectedApp.id, status: "hired" });
+                                }}
                               >
                                 <ThumbsUp className="h-4 w-4" />
                                 Hire Candidate

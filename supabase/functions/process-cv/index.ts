@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,45 +12,56 @@ serve(async (req) => {
 
   try {
     const { fileBase64, jobData } = await req.json()
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
+    const apiKey = Deno.env.get('GEMINI_API_KEY')
 
-    if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not set')
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "Missing API Key" }), { status: 200, headers: corsHeaders })
     }
 
-    // 1. Send PDF to Gemini for parsing and matching
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    // Attempting with v1beta
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{
           parts: [
             { text: `
-              You are an AI HR Expert. 
-              Task 1: Extract candidate info from the provided PDF.
-              Task 2: Compare the candidate with these Job Requirements: ${JSON.stringify(jobData)}.
+              Analyze the attached resume and match it against this job:
+              ${JSON.stringify(jobData)}
               
-              Calculate Match Score: (Skill Match % * 0.6) + (Experience Match % * 0.4).
+              Return a JSON object with these fields:
+              - name: string
+              - skills: string[]
+              - experience_years: number
+              - education: string
+              - projects: string[]
+              - score: number (0-100)
+              - insights: { strengths: string, weaknesses: string, recommendation: string, missing_skills: string[] }
               
-              Return ONLY a JSON object with these exact keys:
-              - name (string)
-              - skills (list)
-              - experience_years (int)
-              - education (string)
-              - projects (list)
-              - score (float, 0-100)
-              - insights: { strengths: string, weaknesses: string, recommendation: string, missing_skills: list }
+              Be very critical with the score. If skills match perfectly, score > 80. If not, score < 50.
             ` },
             { inline_data: { mime_type: "application/pdf", data: fileBase64 } }
           ]
-        }]
+        }],
+        generationConfig: {
+          response_mime_type: "application/json"
+        }
       })
     })
 
-    const result = await response.json()
-    const aiText = result.candidates[0].content.parts[0].text
-    const jsonStr = aiText.replace(/```json|```/g, "").trim()
-    const finalData = JSON.parse(jsonStr)
+    const data = await response.json()
+    
+    if (!response.ok) {
+      return new Response(JSON.stringify({ error: "Gemini Error", details: data.error?.message }), { status: 200, headers: corsHeaders })
+    }
+
+    const aiText = data.candidates[0].content.parts[0].text
+    const finalData = JSON.parse(aiText)
+
+    // Fallback for missing score
+    if (finalData.score === undefined) {
+      finalData.score = 50; 
+    }
 
     return new Response(JSON.stringify(finalData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -59,9 +69,6 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    })
+    return new Response(JSON.stringify({ error: "Edge Error", details: error.message }), { status: 200, headers: corsHeaders })
   }
 })
