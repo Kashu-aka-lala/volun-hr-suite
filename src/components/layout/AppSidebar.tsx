@@ -28,6 +28,7 @@ const adminItems = [
   { title: "Leaves", url: "/admin/leaves", icon: Briefcase },
   { title: "Payroll", url: "/admin/payroll", icon: DollarSign },
   { title: "Tasks", url: "/admin/tasks", icon: CheckSquare },
+  { title: "Hiring", url: "/admin/hiring", icon: Users },
 ];
 
 export function AppSidebar() {
