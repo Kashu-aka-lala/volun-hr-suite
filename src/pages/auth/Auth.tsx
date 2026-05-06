@@ -40,10 +40,10 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-subtle">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-elegant">
-            <Building2 className="h-6 w-6 text-primary-foreground" />
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-xl bg-white shadow-elegant overflow-hidden">
+            <img src="/favicon.ico" alt="DeVerse Logo" className="h-full w-full object-contain p-2" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">VolunteeHR Smart Suite</h1>
+          <h1 className="text-3xl font-bold tracking-tight">DeVerse IT Solutions</h1>
           <p className="text-muted-foreground text-sm">Modern HR management, beautifully simple</p>
         </div>
         <Card className="p-6 shadow-card">

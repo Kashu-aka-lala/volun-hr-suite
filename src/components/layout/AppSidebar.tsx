@@ -42,13 +42,13 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b">
         <div className="flex items-center gap-2 px-2 py-1">
-          <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
-            <Building2 className="h-4 w-4 text-primary-foreground" />
+          <div className="h-8 w-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+            <img src="/favicon.ico" alt="DeVerse Logo" className="h-full w-full object-contain" />
           </div>
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="font-semibold text-sm">VolunteeHR</span>
-              <span className="text-[10px] text-muted-foreground">Smart Suite</span>
+              <span className="font-semibold text-sm">DeVerse</span>
+              <span className="text-[10px] text-muted-foreground">IT Solutions</span>
             </div>
           )}
         </div>

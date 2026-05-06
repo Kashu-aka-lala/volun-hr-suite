@@ -68,7 +68,7 @@ export default function Dashboard() {
         </div>
       )}
       <Card className="p-6 mt-6 shadow-card">
-        <h3 className="font-semibold mb-2">Welcome to VolunteeHR Smart Suite</h3>
+        <h3 className="font-semibold mb-2">Welcome to DeVerse IT Solutions</h3>
         <p className="text-muted-foreground text-sm">
           {role === "admin"
             ? "Use the sidebar to manage employees, approve leave requests, run payroll, and assign tasks."
